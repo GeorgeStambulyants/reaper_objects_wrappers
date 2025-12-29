@@ -18,7 +18,7 @@ function FX.get_current_state(self)
     local is_container, container_fx_count_string = reaper.TrackFX_GetNamedConfigParm(self.track, self.idx, "container_count")
 
     local container_fx_count
-    if ok then
+    if is_container then
         container_fx_count = tonumber(container_fx_count_string) or 0  -- empty container => 0
     else
         container_fx_count = nil                     -- not a container
