@@ -8,6 +8,8 @@ local Utils = require("utils")
 local FX = {}
 FX.__index = FX
 
+local IN_CONTAINER_FLAG = 0x2000000
+
 
 function FX.new(track, addrs)
     local guid = reaper.TrackFX_GetFXGUID(track, addrs)
@@ -36,8 +38,8 @@ function FX.get_current_state(self)
         parent_addrs = tonumber(parent_addrs_string)
     end
 
+    local param_count = reaper.TrackFX_GetNumParams(self.track, self.addrs)
 
-    
     return {
         guid = self.guid,
         addrs = self.addrs,
@@ -45,8 +47,35 @@ function FX.get_current_state(self)
         is_container = is_container,
         container_fx_count = container_fx_count,
         has_parent = has_parent,
-        parent_addrs = parent_addrs
+        parent_addrs = parent_addrs,
+        param_count = param_count
     }
+
+end
+
+
+function FX.toString(self)
+    local state = FX.get_current_state(self)
+    
+    if state == nil then return "" end
+
+    local idx = tostring(state.addrs) or "undefined idx"
+    local name = state.name or "undefined name"
+    local param_count = tostring(state.param_count) or "undefined param count"
+    local has_parent = tostring(state.has_parent) or "is top-level"
+
+    local container_info = "top-level"
+    if state.has_parent and state.parent_addrs ~= nil then
+        local container_based_idx = Utils.find_child_slot(self.track, state.parent_addrs, state.addrs)
+        container_info = string.format("parent idx=%s, container based idx=%s",
+            tostring(state.parent_addrs),
+            container_based_idx ~= nil and tostring(container_based_idx) or "unknown")
+    end
+
+    return string.format(
+        "\nGlobal index: %s, name: %s, param count: %s, is container: %s, is nested: %s, %s\n",
+        idx, name, param_count, tostring(state.is_container), has_parent, container_info
+)
 
 end
 
