@@ -72,4 +72,19 @@ function Utils.enumerate_container_descendants(track, addrs, level)
 end
 
 
+function Utils.find_child_slot(track, parent_addr, child_addr)
+    local ok, cnt_str = reaper.TrackFX_GetNamedConfigParm(track, parent_addr, "container_count")
+    if not ok then return nil end
+    local cnt = tonumber(cnt_str) or 0
+
+    for i = 0, cnt - 1 do
+        local ok2, addr_str = reaper.TrackFX_GetNamedConfigParm(track, parent_addr, "container_item." .. i)
+        if ok2 and tonumber(addr_str) == child_addr then
+            return i
+        end
+    end
+    return nil
+end
+
+
 return Utils
