@@ -1,3 +1,10 @@
+local info = debug.getinfo(1, "S")
+local script_path = info.source:match("@(.+)[/\\]")
+
+package.path = script_path .. "/utils.lua;" .. package.path
+local Utils = require("utils")
+
+
 local FX = {}
 FX.__index = FX
 
@@ -65,21 +72,8 @@ function FX.resolve_addrs(self)
     -- 3) Not found (deleted or moved elsewhere)
     self.addrs = nil
     return nil
-    end
-
-function FX.enumerate_container_fx_children(self, level)
-    -- level - recursion depth, -1 for full nested structure
-    local state = FX.get_current_state(self)
-    local children_fx = {}
-    if state == nil or not state.is_container then return nil end
-
-    for i = 0, state.container_fx_count - 1 do
-        local children_fx
-    end
-    
-
-  
 end
+
 
 
 return FX
