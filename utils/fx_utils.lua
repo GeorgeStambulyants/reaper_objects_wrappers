@@ -15,13 +15,13 @@ end
 
 
 
-function Utils.enumerate_container_descendants(track, addrs, level)
+function Utils.enumerate_container_descendants(track, cont_addrs, level)
     -- level - recursion depth
     -- level == -1 → unlimited
     -- level == 0 → return {} (no descendants)
     -- level == 1 → direct children only
     -- level > 1 → recurse that many levels
-    local container_count = Utils.get_container_count(track, addrs)
+    local container_count = Utils.get_container_count(track, cont_addrs)
 
     if track == nil or container_count == nil then return nil end
 
@@ -59,7 +59,7 @@ function Utils.enumerate_container_descendants(track, addrs, level)
     end
 
     for i = 0, container_count - 1 do
-        local ok, child_addrs_str = reaper.TrackFX_GetNamedConfigParm(track, addrs, "container_item." .. i)
+        local ok, child_addrs_str = reaper.TrackFX_GetNamedConfigParm(track, cont_addrs, "container_item." .. i)
         if ok then
             local child_addrs = tonumber(child_addrs_str)
             if child_addrs ~= nil then
