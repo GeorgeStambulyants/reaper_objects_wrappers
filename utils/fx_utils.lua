@@ -30,11 +30,11 @@ function Utils.enumerate_container_descendants(track, cont_addrs, level)
     if level == 0 then return children_addrs end
     if level == nil then level = -1 end
 
-   
 
-    local function enum_children(addrs, depth_left)
+    local function enum_children(addrs, depth_left, cur_depth)
+        local node = {addrs = addrs, depth = cur_depth}
+        children_addrs[#children_addrs+1] = node
 
-        children_addrs[#children_addrs+1] = addrs
 
         if depth_left ~= -1 then
             depth_left = depth_left - 1
@@ -50,7 +50,7 @@ function Utils.enumerate_container_descendants(track, cont_addrs, level)
             if ok then
                 local child_addrs = tonumber(child_addrs_str)
                 if child_addrs ~= nil then
-                    enum_children(child_addrs, depth_left)
+                    enum_children(child_addrs, depth_left, cur_depth + 1)
                 end
             end
                 
@@ -63,7 +63,7 @@ function Utils.enumerate_container_descendants(track, cont_addrs, level)
         if ok then
             local child_addrs = tonumber(child_addrs_str)
             if child_addrs ~= nil then
-                enum_children(child_addrs, level)
+                enum_children(child_addrs, level, 1)
             end
         end
     end
