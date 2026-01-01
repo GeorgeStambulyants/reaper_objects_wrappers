@@ -23,25 +23,37 @@ end
 
 function Track.get_fx_string_repr(self)
     local fx_count = reaper.TrackFX_GetCount(self.track)
-    local output = ""
+    local output = {}
+    local seen = {}
+
+    local function push(line)
+        output[#output+1] = line
+    end
+
 
     for i = 0, fx_count - 1 do
         local fx = FX.new(self.track, i)
+
+        if not seen[fx.addrs] then
+            seen[fx.addrs] = true
+            push(FX.toString(fx))
+        end
+
         if FXUtils.is_container(self.track, fx.addrs) then
-            local enum_children = FXUtils.enumerate_container_tree_nodes(self.track, fx.addrs, -1)
-            output = output .. string.format("%s\n", FX.toString(fx))
-            if enum_children ~= nil then
-                for _, node in ipairs(enum_children) do
-                    local child_fx = FX.new(self.track, node.addrs)
-                    output = output .. string.rep("\t", node.depth) .. FX.toString(child_fx) .. "\n"
+            local nodes = FXUtils.enumerate_container_tree_nodes(self.track, fx.addrs, -1)
+            if nodes ~= nil then
+                for _, node in ipairs(nodes) do
+                    if not seen[node.addrs] then
+                        local child_fx = FX.new(self.track, node.addrs)
+                        push(string.rep("\t", node.depth) .. FX.toString(child_fx))
+                        seen[node.addrs] = true
+                    end
                 end
             end
-
-        else
-            output = output .. FX.toString(fx) .. "\n" 
         end
     end
-    return output
+
+    return table.concat(output, "\n") .. "\n"
 end
 
 
