@@ -31,22 +31,13 @@ function Track.get_fx_string_repr(self)
             local enum_children = FXUtils.enumerate_container_descendants(self.track, fx.addrs, -1)
             output = output .. string.format("%s\n", FX.toString(fx))
             if enum_children ~= nil then
-                local par_addrs
-                for k, v in ipairs(enum_children) do
+                for _, node in ipairs(enum_children) do
                     output = output .. "\t"
-                    local child_fx = FX.new(self.track, v)
+                    local child_fx = FX.new(self.track, node.addrs)
                     local state = FX.get_current_state(child_fx)
                     if child_fx ~= nil and state ~= nil then
-                        if FXUtils.is_container(self.track, child_fx.addrs) then
-                            par_addrs = state.addrs
-                            output = output .. string.format("%s\n", FX.toString(child_fx))
-                        else
-                            if state.parent_addrs == par_addrs then
-                                output = output .. "\t"
-                            end
-                            output = output .. FX.toString(child_fx) .. "\n"
+                        output = output .. string.rep("\t", node.depth) .. FX.toString(FX.new(self.track, node.addrs)) .. "\n"
                         end
-                    end
                 end
             end
 
