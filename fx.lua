@@ -1,8 +1,11 @@
 local info = debug.getinfo(1, "S")
 local script_path = info.source:match("@(.+)[/\\]")
 
-package.path = script_path .. "/utils.lua;" .. package.path
-local Utils = require("utils")
+package.path =
+  script_path .. "/utils/?.lua;" ..
+  package.path
+
+local FXUtils = require("fx_utils")
 
 
 local FX = {}
@@ -66,14 +69,14 @@ function FX.toString(self)
 
     local container_info = "top-level"
     if state.has_parent and state.parent_addrs ~= nil then
-        local container_based_idx = Utils.find_child_slot(self.track, state.parent_addrs, state.addrs)
+        local container_based_idx = FXUtils.find_child_slot(self.track, state.parent_addrs, state.addrs)
         container_info = string.format("parent idx=%s, container based idx=%s",
             tostring(state.parent_addrs),
             container_based_idx ~= nil and tostring(container_based_idx) or "unknown")
     end
 
     return string.format(
-        "\nGlobal index: %s, name: %s, param count: %s, is container: %s, is nested: %s, %s\n",
+        "Global index: %s, name: %s, param count: %s, is container: %s, is nested: %s, %s",
         idx, name, param_count, tostring(state.is_container), has_parent, container_info
 )
 

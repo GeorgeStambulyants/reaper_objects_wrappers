@@ -1,10 +1,10 @@
 local info = debug.getinfo(1, "S")
 local script_path = info.source:match("@(.+)[/\\]")
 
-package.path = script_path .. "/fx.lua;" .. package.path
 
+package.path = script_path .. "/?.lua;" .. package.path
 
-local FX = require("fx")
+local Track = require("track")
 
 
 local function begin_edit()
@@ -20,17 +20,9 @@ end
 begin_edit()
 reaper.ClearConsole()
 
-local track = reaper.GetTrack(0, 0)
+local track = Track.new(0, 0)
 
-
-reaper.ShowConsoleMsg("Start\n")
-
-local ok, idx_str = reaper.TrackFX_GetNamedConfigParm(track, 1, "container_item.0")
-local fx = FX.new(track, tonumber(idx_str))
-
-
-reaper.ShowConsoleMsg(FX.toString(fx))
-
+reaper.ShowConsoleMsg(Track.get_fx_string_repr(track))
 
 
 
