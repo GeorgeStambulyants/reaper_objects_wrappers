@@ -15,7 +15,7 @@ end
 
 
 
-function Utils.enumerate_container_descendants(track, cont_addrs, level)
+function Utils.enumerate_container_tree_nodes(track, cont_addrs, level)
     -- level - recursion depth
     -- level == -1 → unlimited
     -- level == 0 → return {} (no descendants)
@@ -23,17 +23,17 @@ function Utils.enumerate_container_descendants(track, cont_addrs, level)
     -- level > 1 → recurse that many levels
     local container_count = Utils.get_container_count(track, cont_addrs)
 
-    if track == nil or container_count == nil then return nil end
+    if container_count == nil then return nil end
 
-    local children_addrs = {}
+    local children_nodes = {}
 
-    if level == 0 then return children_addrs end
+    if level == 0 then return children_nodes end
     if level == nil then level = -1 end
 
 
     local function enum_children(addrs, depth_left, cur_depth)
         local node = {addrs = addrs, depth = cur_depth}
-        children_addrs[#children_addrs+1] = node
+        children_nodes[#children_nodes+1] = node
 
 
         if depth_left ~= -1 then
@@ -68,7 +68,7 @@ function Utils.enumerate_container_descendants(track, cont_addrs, level)
         end
     end
     
-    return children_addrs
+    return children_nodes
 end
 
 
