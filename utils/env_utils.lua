@@ -68,4 +68,55 @@ function EnvUtils.replace_points_in_range(env, t0, t1, points)
   return true
 end
 
+
+function EnvUtils.form_ramp_points(t0, t1, v_out, v_in, fade, shape, tension, selected)
+    t0, t1 = swap_if_needed(t0, t1)
+
+    shape = shape or EnvUtils.SHAPE.LINEAR
+    tension = tension or 0.0
+    selected = (selected == true)
+
+    fade = fade or 0.0
+    if fade < 0 then fade = 0 end
+
+    
+    local dur = t1 - t0
+    if dur <= 0 then
+        return {
+            {time = t0, value = v_out, shape = shape, tension = tension, selected = selected}
+        }
+    end
+
+    if fade * 2 > dur then
+        fade = dur / 2
+    end
+    
+    local eps = 1e-6
+    local t_in_a = t0 + fade
+    local t_in_b = t1 - fade
+
+
+    if fade == 0 then
+        t_in_a = t0 + eps
+        t_in_b = t1 - eps
+        if t_in_a > t_in_b then
+            -- extremely small selection: fall back to two points
+            t_in_a = t0
+            t_in_b = t1
+        end
+    end
+
+
+    local points = {
+        {time = t0, value = v_out, shape = shape, tension = tension, selected = selected},
+        {time = t_in_a, value = v_in, shape = shape, tension = tension, selected = selected},
+        {time = t_in_b, value = v_in, shape = shape, tension = tension, selected = selected},
+        {time = t1, value = v_out, shape = shape, tension = tension, selected = selected},
+    }
+
+    return points
+
+end
+
+
 return EnvUtils

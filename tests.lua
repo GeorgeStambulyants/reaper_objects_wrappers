@@ -49,12 +49,11 @@ if not env then
   return
 end
 
--- Example: write a linear ramp 0 -> 1 over time selection
-local points = {
-  { time = ts_start, value = 0.0, shape = EnvUtils.SHAPE.SQUARE, tension = 0.0, selected = false },
-  { time = ts_end,   value = 1.0, shape = EnvUtils.SHAPE.LINEAR, tension = 0.0, selected = false }
-}
+local cur, min, max = reaper.TrackFX_GetParam(track, fxidx, parm)
 
+-- Example: write a linear ramp 0 -> 1 over time selection
+local points = EnvUtils.form_ramp_points(ts_start, ts_end, cur, min, 0, EnvUtils.SHAPE.LINEAR, 0.0, false)
 EnvUtils.replace_points_in_range(env, ts_start, ts_end, points)
 
 end_edit("8.D: Replace envelope points in time selection")
+
