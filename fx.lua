@@ -2,7 +2,7 @@ local info = debug.getinfo(1, "S")
 local script_path = info.source:match("@(.+)[/\\]")
 
 package.path =
-  script_path .. "/utils/?.lua;" ..
+  script_path .. "/fx_utils/?.lua;" ..
   package.path
 
 local FXUtils = require("fx_utils")

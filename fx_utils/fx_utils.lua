@@ -1,7 +1,7 @@
-local Utils = {}
+local FXUtils = {}
 
 
-function Utils.get_container_count(track, addrs)
+function FXUtils.get_container_count(track, addrs)
     if track == nil or addrs == nil then return nil end
     local ok, cnt_str = reaper.TrackFX_GetNamedConfigParm(track, addrs, "container_count")
     if not ok then return nil end
@@ -9,19 +9,19 @@ function Utils.get_container_count(track, addrs)
 end
 
 
-function Utils.is_container(track, addrs)
-    return Utils.get_container_count(track, addrs) ~= nil
+function FXUtils.is_container(track, addrs)
+    return FXUtils.get_container_count(track, addrs) ~= nil
 end
 
 
 
-function Utils.enumerate_container_tree_nodes(track, cont_addrs, level)
+function FXUtils.enumerate_container_tree_nodes(track, cont_addrs, level)
     -- level - recursion depth
     -- level == -1 → unlimited
     -- level == 0 → return {} (no descendants)
     -- level == 1 → direct children only
     -- level > 1 → recurse that many levels
-    local container_count = Utils.get_container_count(track, cont_addrs)
+    local container_count = FXUtils.get_container_count(track, cont_addrs)
 
     if container_count == nil then return nil end
 
@@ -42,7 +42,7 @@ function Utils.enumerate_container_tree_nodes(track, cont_addrs, level)
         end
 
 
-        local container_count = Utils.get_container_count(track, addrs)
+        local container_count = FXUtils.get_container_count(track, addrs)
         if container_count == nil or container_count == 0 then return end
 
         for i = 0, container_count - 1 do
@@ -72,7 +72,7 @@ function Utils.enumerate_container_tree_nodes(track, cont_addrs, level)
 end
 
 
-function Utils.find_child_slot(track, parent_addr, child_addr)
+function FXUtils.find_child_slot(track, parent_addr, child_addr)
     local ok, cnt_str = reaper.TrackFX_GetNamedConfigParm(track, parent_addr, "container_count")
     if not ok then return nil end
     local cnt = tonumber(cnt_str) or 0
@@ -87,4 +87,4 @@ function Utils.find_child_slot(track, parent_addr, child_addr)
 end
 
 
-return Utils
+return FXUtils

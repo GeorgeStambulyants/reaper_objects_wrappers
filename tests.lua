@@ -2,10 +2,11 @@ local info = debug.getinfo(1, "S")
 local script_path = info.source:match("@(.+)[/\\]")
 
 package.path =
-  script_path .. "/utils/?.lua;" ..
+  script_path .. "/env_utils/?.lua;" ..
   package.path
 
 local EnvUtils = require("env_utils")
+local EnvUHelper = require("env_helpers")
 
 local function begin_edit()
   reaper.Undo_BeginBlock()
@@ -52,7 +53,7 @@ end
 local cur, min, max = reaper.TrackFX_GetParam(track, fxidx, parm)
 
 -- Example: write a linear ramp 0 -> 1 over time selection
-local points = EnvUtils.form_points("saw", ts_start, ts_end, 2, 0, 0, EnvUtils.SHAPE.LINEAR, 0.0)
+local points = EnvUtils.form_points("saw", ts_start, ts_end, 2, 0, 0, EnvUHelper.SHAPE.LINEAR, 0.0)
 
 EnvUtils.replace_points_in_range(env, ts_start, ts_end, points)
 
