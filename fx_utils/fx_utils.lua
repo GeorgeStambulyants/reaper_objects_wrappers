@@ -1,5 +1,7 @@
 local FXUtils = {}
 
+local FLAG_IN_CONTAINER = 0x2000000
+
 
 function FXUtils.get_container_count(track, addrs)
     if track == nil or addrs == nil then return nil end
@@ -11,6 +13,12 @@ end
 
 function FXUtils.is_container(track, addrs)
     return FXUtils.get_container_count(track, addrs) ~= nil
+end
+
+
+
+function FXUtils.is_in_container_fxidx(fxidx)
+  return (fxidx & FLAG_IN_CONTAINER) ~= 0
 end
 
 
@@ -84,6 +92,33 @@ function FXUtils.find_child_slot(track, parent_addr, child_addr)
         end
     end
     return nil
+end
+
+
+function FXUtils.resolve_touched_fx()
+    local ok, trackidx, itemidx, takeidx, fxidx, param = reaper.GetTouchedOrFocusedFX(0)
+    if not ok then return nil end
+
+    -- Track FX
+    if itemidx == -1 then
+        local track = (trackidx == -1) and reaper.GetMasterTrack(0) or reaper.GetTrack(0, trackidx)
+        if not track then return nil end
+
+        -- Validate the FX still exists
+        local guid = reaper.TrackFX_GetFXGUID(track, fxidx)
+        if not guid or guid == "" then return nil end
+
+        return {
+            kind = "trackfx",
+            track = track,
+            fxidx = fxidx,
+            param = param,
+            guid = guid,
+            in_container = FXUtils.is_in_container_fxidx(fxidx),
+        }
+    else
+        return nil
+    end
 end
 
 
