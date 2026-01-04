@@ -60,14 +60,14 @@ function EnvUtils.delete_points_in_time_range(env, t0, t1)
     if pt_count == 0 then return true end
 
     for i = pt_count - 1, 0, -1 do
-        local ok, time = reaper.GetEnvelopePoint(env, i)
+        local ok, time, value, shape, tension, selected = reaper.GetEnvelopePoint(env, i)
         if ok and time >= t0 and time <= t1 then
-        reaper.DeleteEnvelopePointEx(env, -1, i) -- -1 = main lane (not automation item)
+            reaper.DeleteEnvelopePointEx(env, -1, i) -- -1 = main lane (not automation item)
         end
     end
 
     return true
-    end
+end
 
 -- Insert one point (main lane) without sorting. Caller sorts once.
 function EnvUtils.insert_point(env, time, value, shape, tension, selected)
@@ -104,40 +104,39 @@ function EnvUtils.replace_points_in_range(env, t0, t1, points)
 end
 
 
-local function form_square_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
-    shape = EnvUtils.SHAPE.SQUARE
-
+local function form_square_points(t0, t1, v0, v1, fade, shape, tension, selected)
+    -- t0 and t1 must be snapped
     local eps = 1e-6
-    local t_in_a = t0_snapped + fade
-    local t_in_b = t1_snapped - fade
-
-
-
+    local t_in_a = t0 + fade
+    local t_in_b = t1 - fade
 
     if fade == 0 then
-        t_in_a = t0_snapped + eps
-        t_in_b = t1_snapped - eps
+        shape = EnvUtils.SHAPE.SQUARE
+        t_in_a = t0 + eps
+        t_in_b = t1 - eps
     end
 
     if t_in_a >= t_in_b then
         shape = EnvUtils.SHAPE.LINEAR
         return {
-            {time = t0_snapped, value = start_val, shape = shape, tension = tension, selected = selected},
-            {time = t1_snapped, value = finish_val, shape = shape, tension = tension, selected = selected}
+            {time = t0, value = v0, shape = shape, tension = tension, selected = selected},
+            {time = t1, value = v1, shape = shape, tension = tension, selected = selected}
         }
     end
 
     
     return {
-        {time = t0_snapped, value = start_val, shape = shape, tension = tension, selected = selected},
-        {time = t_in_a, value = finish_val, shape = shape, tension = tension, selected = selected},
-        {time = t_in_b, value = finish_val, shape = shape, tension = tension, selected = selected},
-        {time = t1_snapped, value = start_val, shape = shape, tension = tension, selected = selected},
+        {time = t0, value = v0, shape = shape, tension = tension, selected = selected},
+        {time = t_in_a, value = v1, shape = EnvUtils.SHAPE.SQUARE, tension = tension, selected = selected},
+        {time = t_in_b, value = v1, shape = shape, tension = tension, selected = selected},
+        {time = t1, value = v0, shape = shape, tension = tension, selected = selected},
     }
 
 end
 
-local function form_pulse_points(t0, t1, low_value, high_value, fade, shape, tension, selected)
+local function form_pulse_points(t0, t1, v0, v1, fade, shape, tension, selected)
+    -- t0 and t1 must be snapped
+
     local points = {}
     local eps = 1e-6
 
@@ -146,13 +145,12 @@ local function form_pulse_points(t0, t1, low_value, high_value, fade, shape, ten
     if fade == 0 then fade = eps end
 
     local cur_t = t0
-
     while cur_t < t1 do
         local mid_t = reaper.BR_GetNextGridDivision(cur_t)
         if not mid_t or mid_t <= cur_t then break end
         if mid_t > t1 then
-            points[#points+1] = {time = cur_t, value = low_value, shape = shape, tension = tension, selected = selected}
-            points[#points+1] = {time = t1,  value = low_value, shape = shape, tension = tension, selected = selected}
+            points[#points+1] = {time = cur_t, value = v0, shape = shape, tension = tension, selected = selected}
+            points[#points+1] = {time = t1,  value = v0, shape = shape, tension = tension, selected = selected}
             return points
         end
 
@@ -171,56 +169,86 @@ local function form_pulse_points(t0, t1, low_value, high_value, fade, shape, ten
         local next_pre = clamp(next_t - f2, mid_t, next_t)
 
         -- low portion
-        points[#points+1] = {time = cur_t,     value = low_value, shape = shape, tension = tension, selected = selected}
-        points[#points+1] = {time = mid_pre, value = low_value, shape = shape, tension = tension, selected = selected}
+        points[#points+1] = {time = cur_t,     value = v0, shape = shape, tension = tension, selected = selected}
+        if mid_pre > cur_t + eps then
+            points[#points+1] = {time = mid_pre, value = v0, shape = shape, tension = tension, selected = selected}
+        end
 
         -- step/ramp up at mid
-        points[#points+1] = {time = mid_t,     value = high_value, shape = shape, tension = tension, selected = selected}
+        points[#points+1] = {time = mid_t,     value = v1, shape = shape, tension = tension, selected = selected}
 
-        -- high portion
-        points[#points+1] = {time = next_pre, value = high_value, shape = shape, tension = tension, selected = selected}
-        
+        if next_pre > mid_pre + eps then
+            -- high portion
+            points[#points+1] = {time = next_pre, value = v1, shape = shape, tension = tension, selected = selected}
+        end
+            
         -- next cycle begins at nxt (low again)
         if next_t >= t1 then
-            points[#points+1] = {time = t1, value = low_value, shape = shape, tension = tension, selected = selected}
+            points[#points+1] = {time = t1, value = v0, shape = shape, tension = tension, selected = selected}
             break
         end
-        points[#points+1] = {time = next_t, value = low_value, shape = shape, tension = tension, selected = selected}
+        points[#points+1] = {time = next_t, value = v0, shape = shape, tension = tension, selected = selected}
         
         cur_t = next_t 
+    end
 
+    return points
+end
+
+local function form_saw_points(t0, t1, v0, v1, shape_ramp, tension_ramp, selected)
+    -- t0 and t1 must be snapped
+
+    local points = {}
+    local eps = 1e-6
+
+    shape_ramp = shape_ramp or EnvUtils.SHAPE.LINEAR
+    tension_ramp = tension_ramp or 0.0
+
+    local cur_t = t0
+    while cur_t < t1 do
+        local next_t = reaper.BR_GetNextGridDivision(cur_t)
+        if not next_t or next_t <= cur_t then break end
+        if next_t > t1 then next_t = t1 end
+
+        -- Ramp segment: shape belongs on the start point (cur)
+        points[#points+1] = {time = cur_t, value = v0, shape = shape_ramp, tension = tension_ramp, selected = selected}
+        points[#points+1] = {time = next_t, value = v1, shape = EnvUtils.SHAPE.SQUARE, tension = 0.0, selected = selected}
+
+        if next_t >= t1 then break end
+
+         -- Reset: step back to v0 just after the boundary
+        local reset_t = next_t + eps
+        if reset_t >= t1 then break end
+
+        points[#points+1] = {time = reset_t, value = v0, shape = EnvUtils.SHAPE.SQUARE, tension = 0.0, selected = selected}
+
+        cur_t = reset_t
 
     end
 
     return points
-
 end
 
-local function form_sawup_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
-
-end
-
-local function form_sawdown_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
-
-end
 
 local function form_triangle_points(t0, t1, v0, v1, shape, tension, selected)
+    -- t0 and t1 must be snapped
+
     local points = {}
-    local t = t0
     local up = true
 
-    while t < t1 do
-        local t_next = reaper.BR_GetNextGridDivision(t)
-        if not t_next or t_next <= t then break end
+    local cur_t = t0
+    while cur_t < t1 do
+        local t_next = reaper.BR_GetNextGridDivision(cur_t)
+        if not t_next or t_next <= cur_t then break end
         if t_next > t1 then t_next = t1 end
 
         local a = up and v0 or v1
         local b = up and v1 or v0
 
-        points[#points+1] = { time = t,      value = a, shape = shape, tension = tension, selected = selected }
+        points[#points+1] = { time = cur_t,  value = a, shape = shape, tension = tension, selected = selected }
         points[#points+1] = { time = t_next, value = b, shape = shape, tension = tension, selected = selected }
 
-        t = t_next
+        cur_t = t_next
         up = not up
     end
 
@@ -234,8 +262,7 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
     --   square
     --   pulse
     --   triangle
-    --   saw_up
-    --   saw_down
+    --   saw
 
     t0, t1 = swap_if_needed(t0, t1)
 
@@ -258,7 +285,7 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
     end
 
     local t0_snapped, t1_snapped = snap_inward(t0, t1)
-    local dur_snapped = t1 - t0
+    local dur_snapped = t1_snapped - t0_snapped
     if dur_snapped <= 0 then
         return {
             {time = t0, value = start_val, shape = shape, tension = tension, selected = selected}
@@ -267,13 +294,6 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
 
     if fade * 2 > dur_snapped then
         fade = dur_snapped / 2
-    end
-
-
-    if t1_snapped <= t0_snapped then
-        return {
-            {time = t0_snapped, value = start_val, shape = shape, tension = tension, selected = selected}
-        }
     end
 
     if form_type == "square" then
@@ -288,14 +308,9 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
         return form_pulse_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
     end
 
-    if form_type == "saw_up" then
-        return form_sawup_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
+    if form_type == "saw" then
+        return form_saw_points(t0_snapped, t1_snapped, start_val, finish_val, shape, tension, selected)
     end
-
-    if form_type == "saw_down" then
-        return form_sawdown_points(t0_snapped, t1_snapped, start_val, finish_val, fade, shape, tension, selected)
-    end
-
 
     return {}
     
