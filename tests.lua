@@ -5,7 +5,12 @@ package.path =
   script_path .. "/track_utils/?.lua;" ..
   package.path
 
+package.path =
+  script_path .. "/common_utils/?.lua;" ..
+  package.path
+
 local TrackRenderUtils = require("rendering_utils")
+local CommonUtils = require("common_utils")
 
 local function begin_edit()
   reaper.Undo_BeginBlock()
@@ -25,16 +30,15 @@ end
 
 reaper.ClearConsole()
 
-local stats = TrackRenderUtils.parse_render_stats(0, 0)
 
 
-reaper.ShowConsoleMsg(stats)
 
 
 begin_edit()
 
 
 
+CommonUtils.print_table(TrackRenderUtils.parse_render_stats(TrackRenderUtils.read_render_stats(0, 1)))
 
 
 
