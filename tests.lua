@@ -1,16 +1,10 @@
 local info = debug.getinfo(1, "S")
 local script_path = info.source:match("@(.+)[/\\]")
 
-package.path =
-  script_path .. "/track_utils/?.lua;" ..
-  package.path
+package.path = script_path .. "/?.lua;" .. package.path
 
-package.path =
-  script_path .. "/common_utils/?.lua;" ..
-  package.path
+local Track = require("track")
 
-local TrackRenderUtils = require("rendering_utils")
-local CommonUtils = require("common_utils")
 
 local function begin_edit()
   reaper.Undo_BeginBlock()
@@ -37,8 +31,10 @@ reaper.ClearConsole()
 begin_edit()
 
 
+local track = Track.new(0, 0)
 
-CommonUtils.print_table(TrackRenderUtils.parse_render_stats(TrackRenderUtils.read_render_stats(0, 1)))
+Track.change_fader_db(track, 40)
+reaper.ShowConsoleMsg(tostring(Track.get_fader_db(track)))
 
 
 
