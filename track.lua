@@ -94,6 +94,7 @@ end
 
 function Track.get_fader_db(self)
     local vol_lin = reaper.GetMediaTrackInfo_Value(self.track, "D_VOL")
+    if not vol_lin or vol_lin <= 0 then return -150 end
     local vol_db = TrackUtils.lin_to_db(vol_lin)
 
     return vol_db
