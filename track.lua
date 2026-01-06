@@ -25,14 +25,14 @@ local function clamp(x, lo, hi)
 end
 
 
-function Track.new(project_id, track_id_or_name)
+function Track.new(project_id, track_idx_or_name)
     local track, idx
 
-    if type(track_id_or_name) == "number" then
-        track = reaper.GetTrack(project_id, track_id_or_name)
-        idx = track_id_or_name
-    elseif type(track_id_or_name) == "string" then
-        track, idx = TrackUtils.find_track_by_name(project_id, track_id_or_name)
+    if type(track_idx_or_name) == "number" then
+        track = reaper.GetTrack(project_id, track_idx_or_name)
+        idx = track_idx_or_name
+    elseif type(track_idx_or_name) == "string" then
+        track, idx = TrackUtils.find_track_by_name(project_id, track_idx_or_name)
     else
         return nil
     end
