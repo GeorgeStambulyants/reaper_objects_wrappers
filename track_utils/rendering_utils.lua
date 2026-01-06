@@ -21,7 +21,7 @@ local function measure_loudness(scope)
     end
 end
 
-function TrackRenderUtils.read_render_stats(proj, scope)
+function TrackRenderUtils.measure_and_read_render_stats(proj, scope)
     -- scope can be 0 for entire track, or 1 for time selection only
     local ok = measure_loudness(scope)
     if not ok then return nil end
