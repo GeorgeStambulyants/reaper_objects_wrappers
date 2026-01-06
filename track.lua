@@ -10,6 +10,7 @@ package.path =
 local FXUtils = require("fx_utils")
 local CommonUtils = require("common_utils")
 local TrackUtils = require("track_utils")
+local RenderingUtil = require("rendering_utils")
 local FX = require("fx")
 
 local Track = {}
@@ -24,11 +25,21 @@ local function clamp(x, lo, hi)
 end
 
 
-function Track.new(project_id, track_id)
-    local track = reaper.GetTrack(project_id, track_id)
+function Track.new(project_id, track_id_or_name)
+    local track, idx
+
+    if type(track_id_or_name) == "number" then
+        track = reaper.GetTrack(project_id, track_id_or_name)
+        idx = track_id_or_name
+    elseif type(track_id_or_name) == "string" then
+        track, idx = TrackUtils.find_track_by_name(project_id, track_id_or_name)
+    else
+        return nil
+    end
+
     if not track then return nil end
 
-    local attrs = {track = track}
+    local attrs = {track = track, idx = idx, project_id = project_id}
     local self = setmetatable(attrs, Track)
     return self
 end
@@ -70,6 +81,12 @@ function Track.get_fx_string_repr(self)
 end
 
 
+function Track.get_name(self)
+    local _, name = reaper.GetSetMediaTrackInfo_String(self.track, "P_NAME", "", false)
+    return name
+end
+
+
 function Track.is_selected(self)
     return reaper.IsTrackSelected(self.track)
 end
@@ -94,6 +111,32 @@ function Track.change_fader_db(self, db)
 
     Track.set_fader_db(self, cur_vol_db + db)
 end
+
+
+function Track.normalize_fader_lufsi(self, target_lufsi, scope)
+    -- scope: 0 for entire track, 1 for time selection
+    local cur_stats = RenderingUtil.parse_render_stats(RenderingUtil.read_render_stats(self.project_id, scope))
+    CommonUtils.print_table(cur_stats)
+    if cur_stats == nil or #cur_stats == 0 then return false end
+    local cur_track_stats = RenderingUtil.get_record_by_filename(self, cur_stats, Track.get_name(self))
+
+    if not cur_track_stats then return false end
+    if not cur_track_stats.lufsi then return false end
+
+    local delta_db = target_lufsi - cur_track_stats.lufsi
+    local delta_db_clampped = clamp(delta_db, -24, 24)
+
+    -- TODO: if the delta is too big need to do something else
+    if delta_db ~= delta_db_clampped then return false end
+
+    Track.change_fader_db(self, delta_db)
+
+    -- TODO: need to add a test after changing -- is new value as requested. Decide what to do if it's not
+
+    return true
+end
+
+
 
 
 

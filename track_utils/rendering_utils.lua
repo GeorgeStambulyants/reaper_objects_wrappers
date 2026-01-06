@@ -33,6 +33,14 @@ function TrackRenderUtils.read_render_stats(proj, scope)
 end
 
 function TrackRenderUtils.parse_render_stats(stats)
+    -- return table with folowwing keys. Nil if value was underfined
+    --   lufsi;
+    --   peak;
+    --   lra;
+    --   lufsmmax;
+    --   file;
+    --   lufssmax;
+
     if type(stats) ~= "string" or stats == "" then return nil end
 
     local records = {}
@@ -72,6 +80,18 @@ function TrackRenderUtils.parse_render_stats(stats)
     return records
 end
 
+
+function TrackRenderUtils.get_record_by_filename(self, stats, filename)
+    local rec = nil
+    for i = 1, #stats do
+        local s = stats[i]
+        if s and s.file and s.file == filename then
+            rec = s
+            return rec
+        end
+    end
+    return nil
+end
 
 
 return TrackRenderUtils

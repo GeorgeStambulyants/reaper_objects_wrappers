@@ -26,14 +26,12 @@ reaper.ClearConsole()
 
 
 
-
-
 begin_edit()
 
 
-local track = Track.new(0, 0)
+local track = Track.new(0, "Track Print")
+Track.normalize_fader_lufsi(track, -23, 0)
 
-Track.change_fader_db(track, 40)
 reaper.ShowConsoleMsg(tostring(Track.get_fader_db(track)))
 
 
