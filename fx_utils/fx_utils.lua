@@ -111,6 +111,8 @@ function FXUtils.resolve_touched_fx()
         return {
             kind = "trackfx",
             track = track,
+            trackidx = trackidx,
+            is_master = trackidx == -1,
             fxidx = fxidx,
             param = param,
             guid = guid,
