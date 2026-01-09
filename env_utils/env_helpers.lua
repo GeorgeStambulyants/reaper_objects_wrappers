@@ -35,7 +35,7 @@ end
 
 
 function EnvHelper.snap_inward(t0, t1)
-    local eps = 1e-9
+    local eps = 1e-5
 
     local t0g
     if EnvHelper.is_on_grid(t0, eps) then
@@ -51,7 +51,7 @@ function EnvHelper.snap_inward(t0, t1)
         t1g = reaper.BR_GetPrevGridDivision(t1)
     end
 
-    return t0g or t0, t1g or t1
+    return t0g, t1g
 end
 
 return EnvHelper

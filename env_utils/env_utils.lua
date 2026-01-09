@@ -69,12 +69,13 @@ end
 
 
 
-function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, shape, tension, selected)
+function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, shape, tension, selected, edges_offset)
     -- types
     --   square
     --   pulse
     --   triangle
     --   saw
+    -- edges_offset if present shifts the edge points by its value
 
     t0, t1 = EnvHelper.swap_if_needed(t0, t1)
 
@@ -84,24 +85,19 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
 
     fade = fade or 0.0
     if fade < 0 then fade = 0 end
+    if edges_offset == nil or edges_offset < 0 then edges_offset = 0 end
 
-    local dur = t1 - t0
-    if fade * 2 > dur then
-        fade = dur / 2
-    end
-
-    if dur <= 0 then
-        return {
-            {time = t0, value = start_val, shape = shape, tension = tension, selected = selected}
-        }
-    end
 
     local t0_snapped, t1_snapped = EnvHelper.snap_inward(t0, t1)
+    if not t0_snapped or not t1_snapped then return {} end
+    
+    t0_snapped = t0_snapped + edges_offset
+    t1_snapped = t1_snapped - edges_offset
+
+
     local dur_snapped = t1_snapped - t0_snapped
     if dur_snapped <= 0 then
-        return {
-            {time = t0, value = start_val, shape = shape, tension = tension, selected = selected}
-        }
+        return {}
     end
 
     if fade * 2 > dur_snapped then
