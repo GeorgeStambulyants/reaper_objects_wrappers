@@ -32,25 +32,34 @@ end
 
 -- Insert one point (main lane) without sorting. Caller sorts once.
 function EnvUtils.insert_point(env, time, value, shape, tension, selected)
-  if not env then return false end
-  reaper.InsertEnvelopePointEx(
-    env,
-    -1,                       -- main lane
-    time,
-    value,
-    shape or EnvUtils.SHAPE.LINEAR,
-    tension or 0.0,
-    selected == true,
-    true                      -- noSort (batch)
-  )
-  return true
+    local mode = reaper.GetEnvelopeScalingMode(env)
+    value = reaper.ScaleToEnvelopeMode(mode, value)
+
+    if not env then return false end
+    reaper.InsertEnvelopePointEx(
+        env,
+        -1,                       -- main lane
+        time,
+        value,
+        shape or EnvUtils.SHAPE.LINEAR,
+        tension or 0.0,
+        selected == true,
+        true                      -- noSort (batch)
+    )
+    return true
 end
 
 -- Replace points in [t0, t1] with the provided list (batch insert + single sort).
 -- points: array of {time=..., value=..., shape=..., tension=..., selected=...}
-function EnvUtils.replace_points_in_range(env, t0, t1, points)
+function EnvUtils.replace_points_in_range(env, t0, t1, points, edges_offset)
     if not env then return false end
+    if edges_offset == nil then edges_offset = 0 end
+
     t0, t1 = EnvHelper.swap_if_needed(t0, t1)
+
+    t0 = t0 + edges_offset
+    t1 = t1 - edges_offset
+
 
     EnvUtils.delete_points_in_time_range(env, t0, t1)
 
@@ -90,7 +99,7 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
 
     local t0_snapped, t1_snapped = EnvHelper.snap_inward(t0, t1)
     if not t0_snapped or not t1_snapped then return {} end
-    
+
     t0_snapped = t0_snapped + edges_offset
     t1_snapped = t1_snapped - edges_offset
 
@@ -121,7 +130,7 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
     end
 
     return {}
-    
+
 end
 
 
