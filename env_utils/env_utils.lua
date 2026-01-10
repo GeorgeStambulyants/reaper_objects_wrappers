@@ -13,9 +13,13 @@ local EnvUtils = {}
 
 -- Delete envelope points in [t0, t1] inclusive.
 -- Uses reverse iteration so indices remain valid.
-function EnvUtils.delete_points_in_time_range(env, t0, t1)
+function EnvUtils.delete_points_in_time_range(env, t0, t1, edges_offset)
     if not env then return false end
     t0, t1 = EnvHelper.swap_if_needed(t0, t1)
+
+    t0 = t0 + edges_offset
+    t1 = t1 - edges_offset
+
 
     local pt_count = reaper.CountEnvelopePoints(env)
     if pt_count == 0 then return true end
@@ -32,8 +36,6 @@ end
 
 -- Insert one point (main lane) without sorting. Caller sorts once.
 function EnvUtils.insert_point(env, time, value, shape, tension, selected)
-    local mode = reaper.GetEnvelopeScalingMode(env)
-    value = reaper.ScaleToEnvelopeMode(mode, value)
 
     if not env then return false end
     reaper.InsertEnvelopePointEx(
@@ -49,7 +51,7 @@ function EnvUtils.insert_point(env, time, value, shape, tension, selected)
     return true
 end
 
--- Replace points in [t0, t1] with the provided list (batch insert + single sort).
+-- Replace points in [t0 + edges_offset, t1 - edges_offset] with the provided list (batch insert + single sort).
 -- points: array of {time=..., value=..., shape=..., tension=..., selected=...}
 function EnvUtils.replace_points_in_range(env, t0, t1, points, edges_offset)
     if not env then return false end
@@ -57,11 +59,7 @@ function EnvUtils.replace_points_in_range(env, t0, t1, points, edges_offset)
 
     t0, t1 = EnvHelper.swap_if_needed(t0, t1)
 
-    t0 = t0 + edges_offset
-    t1 = t1 - edges_offset
-
-
-    EnvUtils.delete_points_in_time_range(env, t0, t1)
+    EnvUtils.delete_points_in_time_range(env, t0, t1, edges_offset)
 
     if points then
         for _, p in ipairs(points) do
