@@ -15,6 +15,11 @@ local EnvUtils = {}
 -- Uses reverse iteration so indices remain valid.
 function EnvUtils.delete_points_in_time_range(env, t0, t1, edges_offset)
     if not env then return false end
+    edges_offset = tonumber(edges_offset) or 0
+    if edges_offset < 0 then edges_offset = 0 end
+    if (t1 - t0) <= 2*edges_offset then return true end
+
+
     t0, t1 = EnvHelper.swap_if_needed(t0, t1)
 
     t0 = t0 + edges_offset
@@ -129,6 +134,51 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
 
     return {}
 
+end
+
+
+function EnvUtils.get_points_in_time_range(env, t0, t1)
+    if not env then return {} end
+    if t0 > t1 then t0, t1 = t1, t0 end
+
+    local out = {}
+    local cnt = reaper.CountEnvelopePoints(env)
+    if not cnt or cnt == 0 then return out end
+
+    -- assumes points are time-sorted (generally true; safe if you call Envelope_SortPoints before snapshot)
+    for i = 0, cnt - 1 do
+        local ok, time, value, shape, tension, selected = reaper.GetEnvelopePoint(env, i)
+        if ok then
+            if time < t0 then
+                -- keep scanning
+            elseif time > t1 then
+                break -- past the range; can early exit
+            else
+                out[#out + 1] = {
+                    time = time,
+                    value = value,
+                    shape = shape,
+                    tension = tension,
+                    selected = selected
+                }
+            end
+        end
+    end
+
+    return out
+
+
+
+end
+
+
+function EnvUtils.get_env_amp_at_time(env, t)
+    if not env then return nil end
+
+    local _, raw, _, _, _ = reaper.Envelope_Evaluate(env, t, 44100, 0)  -- sr can be any positive value when samplesRequested=0
+    local mode = reaper.GetEnvelopeScalingMode(env)
+    local amp = reaper.ScaleFromEnvelopeMode(mode, raw)
+    return amp
 end
 
 

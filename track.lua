@@ -120,6 +120,10 @@ end
 function Track.normalize_time_selection_envelope(self, t0, t1, target_lufsi, edges_offset)
     local track_name = Track.get_name(self)
 
+    edges_offset = tonumber(edges_offset) or 0
+    if edges_offset < 0 then edges_offset = 0 end
+    if t1 - t0 <= 2*edges_offset then edges_offset = 0 end
+
     local function get_cur_track_stats()
         local cur_stats = RenderingUtil.parse_render_stats(RenderingUtil.measure_and_read_render_stats(self.project_id, 1))
         if cur_stats == nil or #cur_stats == 0 then return nil, "error reading stats" end
@@ -134,35 +138,42 @@ function Track.normalize_time_selection_envelope(self, t0, t1, target_lufsi, edg
     local env = reaper.GetTrackEnvelopeByName(self.track, "Volume")
     if not env then return false, "couldn't get track's envelope" end
 
-    local before_db = Track.get_fader_db(self)
+    local t_mid = ((t0 + edges_offset) + (t1 - edges_offset)) / 2
+    local before_amp = EnvUtils.get_env_amp_at_time(env, t_mid) -- sample inside selection
+    if before_amp == nil then
+        return false, "couldn't read envelope's value at a given time"
+    end
+
+    local before_db = TrackUtils.lin_to_db(before_amp)
+
 
     local cur_track_stats, status = get_cur_track_stats()
     if cur_track_stats == nil then return false, status end
 
 
     local delta_db = target_lufsi - cur_track_stats.lufsi
-    local delta_db_clamped = clamp(delta_db, -24, 24)
-
-    if delta_db ~= delta_db_clamped then return false, "too big delta" end
+    if math.abs(delta_db) > 64 then return false, "too big delta" end
 
     local mode = reaper.GetEnvelopeScalingMode(env)
     local start_value_raw = reaper.ScaleToEnvelopeMode(mode, TrackUtils.db_to_lin(before_db))
     local finish_value_raw = reaper.ScaleToEnvelopeMode(mode, TrackUtils.db_to_lin(before_db + delta_db))
 
-    local points = EnvUtils.form_points("square", t0, t1, start_value_raw, finish_value_raw, 0.05, EnvHelpers.SHAPE.LINEAR, 0.0, false, edges_offset)
+    local points = EnvUtils.form_points("square", t0, t1, start_value_raw, finish_value_raw, 0.02, EnvHelpers.SHAPE.LINEAR, 0.0, false, edges_offset)
     if points == nil or #points == 0 then return false, "couldn't create points for envelope" end
-    CommonUtils.print_table(points)
+
+    reaper.Envelope_SortPoints(env)
+    local old_points = EnvUtils.get_points_in_time_range(env, t0 + edges_offset, t1 - edges_offset)
 
     EnvUtils.replace_points_in_range(env, t0, t1, points, edges_offset)
 
     local cur_track_stats_after_change, status_after_change = get_cur_track_stats()
     if cur_track_stats_after_change == nil then
-        EnvUtils.delete_points_in_time_range(env, t0 + edges_offset, t1 - edges_offset)
+        EnvUtils.replace_points_in_range(env, t0, t1, old_points, edges_offset)
         return false, status_after_change
     end
 
     if math.abs(target_lufsi - cur_track_stats_after_change.lufsi) > 0.3 then
-        EnvUtils.delete_points_in_time_range(env, t0 + edges_offset, t1 - edges_offset)
+        EnvUtils.replace_points_in_range(env, t0, t1, old_points, edges_offset)
         return false, string.format("normalization failed: got %.3f LUFS-I (target %.3f)", cur_track_stats_after_change.lufsi, target_lufsi)
     end
     return true, "success"
