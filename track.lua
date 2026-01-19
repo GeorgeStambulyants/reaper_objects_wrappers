@@ -116,6 +116,60 @@ function Track.change_fader_db(self, db)
     Track.set_fader_db(self, cur_vol_db + db)
 end
 
+-- normalizes track's main lane volume envelope.
+-- deletes all existing points on the envelope if present
+function Track.normalize_track_volume_envelope(self, target_lufsi)
+    local track_name = Track.get_name(self)
+
+    local function get_cur_track_stats()
+        local cur_stats = RenderingUtil.parse_render_stats(RenderingUtil.measure_and_read_render_stats(self.project_id, 0))
+        if cur_stats == nil or #cur_stats == 0 then return nil, "error reading stats" end
+        local cur_track_stats = RenderingUtil.get_record_by_filename(self, cur_stats, track_name)
+
+        if not cur_track_stats then return nil, "stats record for track not found" end
+        if cur_track_stats.lufsi == nil then return nil, "lufsi missing" end
+
+        return cur_track_stats, "success"
+    end
+
+    local env = reaper.GetTrackEnvelopeByName(self.track, "Volume")
+    if not env then return false, "couldn't get track's envelope" end
+
+    local old_points = EnvUtils.get_envelope_points(env)
+    EnvUtils.delete_env_points(env)
+
+    local before_amp = EnvUtils.get_env_amp_at_time(env, 1) -- time doesn't matter here, because envelope is linear
+    if before_amp == nil then
+        return false, "couldn't read envelope's value at a given time"
+    end
+    local before_db = TrackUtils.lin_to_db(before_amp)
+
+    local cur_track_stats, status = get_cur_track_stats()
+    if cur_track_stats == nil then return false, status end
+
+    local delta_db = target_lufsi - cur_track_stats.lufsi
+    if math.abs(delta_db) > 64 then return false, "too big delta" end
+
+    
+    local mode = reaper.GetEnvelopeScalingMode(env)
+    local new_value = reaper.ScaleToEnvelopeMode(mode, TrackUtils.db_to_lin(before_db + delta_db))
+
+    EnvUtils.insert_point(env, 0, new_value, EnvHelpers.SHAPE.LINEAR, 0.0, false)
+    reaper.Envelope_SortPoints(env)
+
+    local cur_track_stats_after_change, status_after_change = get_cur_track_stats()
+    if cur_track_stats_after_change == nil then
+        EnvUtils.replace_envelope_points(env, old_points)
+        return false, status_after_change
+    end
+
+    if math.abs(target_lufsi - cur_track_stats_after_change.lufsi) > 0.3 then
+        EnvUtils.replace_envelope_points(env, old_points)
+        return false, string.format("normalization failed: got %.3f LUFS-I (target %.3f)", cur_track_stats_after_change.lufsi, target_lufsi)
+    end
+    return true, "success"
+end
+
 
 function Track.normalize_time_selection_envelope(self, t0, t1, target_lufsi, edges_offset)
     local track_name = Track.get_name(self)

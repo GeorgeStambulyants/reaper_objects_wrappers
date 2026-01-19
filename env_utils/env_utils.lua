@@ -11,6 +11,21 @@ local EnvForm = require("env_form_generators")
 
 local EnvUtils = {}
 
+
+-- Delete points in the main lane only (not automation items).
+function EnvUtils.delete_env_points(env)
+    if not env then return false end
+
+    local pt_count = reaper.CountEnvelopePoints(env)
+    if pt_count == 0 then return true end
+
+    for i = pt_count - 1, 0, -1 do
+        reaper.DeleteEnvelopePointEx(env, -1, i)
+    end
+
+    return true
+end
+
 -- Delete envelope points in [t0, t1] inclusive.
 -- Uses reverse iteration so indices remain valid.
 function EnvUtils.delete_points_in_time_range(env, t0, t1, edges_offset)
@@ -68,7 +83,24 @@ function EnvUtils.replace_points_in_range(env, t0, t1, points, edges_offset)
 
     if points then
         for _, p in ipairs(points) do
-        EnvUtils.insert_point(env, p.time, p.value, p.shape, p.tension, p.selected)
+            EnvUtils.insert_point(env, p.time, p.value, p.shape, p.tension, p.selected)
+        end
+    end
+
+    reaper.Envelope_SortPoints(env)
+    return true
+end
+
+
+-- replace entire envelope's points
+function EnvUtils.replace_envelope_points(env, points)
+    if not env then return false end
+
+    EnvUtils.delete_env_points(env)
+
+    if points then
+        for _, p in ipairs(points) do
+            EnvUtils.insert_point(env, p.time, p.value, p.shape, p.tension, p.selected)
         end
     end
 
@@ -134,6 +166,28 @@ function EnvUtils.form_points(form_type, t0, t1, start_val, finish_val, fade, sh
 
     return {}
 
+end
+
+function EnvUtils.get_envelope_points(env)
+    if not env then return {} end
+
+    local out = {}
+    local cnt = reaper.CountEnvelopePoints(env)
+    if not cnt or cnt == 0 then return out end
+
+    -- assumes points are time-sorted (generally true; safe if you call Envelope_SortPoints before snapshot)
+    for i = 0, cnt - 1 do
+        local ok, time, value, shape, tension, selected = reaper.GetEnvelopePoint(env, i)
+            out[#out + 1] = {
+                time = time,
+                value = value,
+                shape = shape,
+                tension = tension,
+                selected = selected
+            }
+    end
+
+    return out
 end
 
 

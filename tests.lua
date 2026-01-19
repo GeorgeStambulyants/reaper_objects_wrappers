@@ -31,11 +31,11 @@ local function end_edit(desc)
   reaper.Undo_EndBlock(desc, -1)
 end
 
-local ts_start, ts_end = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
-if ts_start >= ts_end then
-  reaper.ShowMessageBox("No time selection. Create a time selection first.", "8.D", 0)
-  return
-end
+-- local ts_start, ts_end = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+-- if ts_start >= ts_end then
+--   reaper.ShowMessageBox("No time selection. Create a time selection first.", "8.D", 0)
+--   return
+-- end
 
 reaper.ClearConsole()
 
@@ -45,7 +45,7 @@ begin_edit()
 
 
 local track = Track.new(0, "Track Print")
-local ok, string = Track.normalize_time_selection_envelope(track, ts_start, ts_end, -23, 1/44100)
+local ok, string = Track.normalize_track_volume_envelope(track, -23)
 reaper.ShowConsoleMsg(string)
 
 reaper.ShowConsoleMsg(tostring(Track.get_fader_db(track)))
