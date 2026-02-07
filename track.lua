@@ -138,7 +138,8 @@ function Track.normalize_track_volume_envelope(self, target_lufsi)
     local old_points = EnvUtils.get_envelope_points(env)
     EnvUtils.delete_env_points(env)
 
-    local before_amp = EnvUtils.get_env_amp_at_time(env, 1) -- time doesn't matter here, because envelope is linear
+    -- time doesn't matter here, because envelope is linear and has only one value
+    local before_amp = EnvUtils.get_env_amp_at_time(env, 1)
     if before_amp == nil then
         return false, "couldn't read envelope's value at a given time"
     end
@@ -150,7 +151,7 @@ function Track.normalize_track_volume_envelope(self, target_lufsi)
     local delta_db = target_lufsi - cur_track_stats.lufsi
     if math.abs(delta_db) > 64 then return false, "too big delta" end
 
-    
+
     local mode = reaper.GetEnvelopeScalingMode(env)
     local new_value = reaper.ScaleToEnvelopeMode(mode, TrackUtils.db_to_lin(before_db + delta_db))
 
