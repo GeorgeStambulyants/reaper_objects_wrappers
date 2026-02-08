@@ -45,10 +45,9 @@ begin_edit()
 
 
 local track = Track.new(0, "Track Print")
-local ok, string = Track.normalize_track_volume_envelope(track, -23)
-reaper.ShowConsoleMsg(string)
+local fx = FX.new(track.track, 0)
 
-reaper.ShowConsoleMsg(tostring(Track.get_fader_db(track)))
+reaper.ShowConsoleMsg(FX.get_paramidx_by_name(fx, "Adjustment (dB)") .. "\n")
 
 reaper.UpdateArrange()
 

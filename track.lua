@@ -116,6 +116,19 @@ function Track.change_fader_db(self, db)
     Track.set_fader_db(self, cur_vol_db + db)
 end
 
+
+
+
+
+
+
+
+
+
+-- TODO: Need refactor code below 
+
+
+
 -- normalizes track's main lane volume envelope.
 -- deletes all existing points on the envelope if present
 function Track.normalize_track_volume_envelope(self, target_lufsi)
@@ -170,6 +183,9 @@ function Track.normalize_track_volume_envelope(self, target_lufsi)
     end
     return true, "success"
 end
+
+
+
 
 
 function Track.normalize_time_selection_envelope(self, t0, t1, target_lufsi, edges_offset)

@@ -61,7 +61,7 @@ function FXUtils.enumerate_container_tree_nodes(track, cont_addrs, level)
                     enum_children(child_addrs, depth_left, cur_depth + 1)
                 end
             end
-                
+
         end
 
     end
@@ -75,7 +75,7 @@ function FXUtils.enumerate_container_tree_nodes(track, cont_addrs, level)
             end
         end
     end
-    
+
     return children_nodes
 end
 

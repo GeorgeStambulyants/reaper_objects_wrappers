@@ -108,4 +108,26 @@ end
 
 
 
+
+function FX.get_paramidx_by_name(self, param_name_to_search)
+    local param_count = reaper.TrackFX_GetNumParams(self.track, self.addrs)
+
+    param_name_to_search = string.lower(param_name_to_search)
+
+    for pidx = 0, param_count - 1 do
+        local ok, param_name = reaper.TrackFX_GetParamName(self.track, self.addrs, pidx)
+        if not ok then return -1 end
+        reaper.ShowConsoleMsg(param_name .. " " .. pidx .. "\n")
+        param_name = string.lower(param_name)
+        if ok and param_name == param_name_to_search then
+            return pidx
+        end
+    end
+
+    return -1
+end
+
+
+
+
 return FX
