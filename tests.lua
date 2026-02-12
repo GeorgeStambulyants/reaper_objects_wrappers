@@ -44,10 +44,12 @@ reaper.ClearConsole()
 begin_edit()
 
 
-local track = Track.new(0, "Track Print")
-local fx = FX.new(track.track, 0)
 
-reaper.ShowConsoleMsg(FX.get_paramidx_by_name(fx, "Adjustment (dB)") .. "\n")
+local track = Track.new(0, 0)
+Track.toggle_solo(track)
+
+
+
 
 reaper.UpdateArrange()
 

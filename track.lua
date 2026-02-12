@@ -117,6 +117,10 @@ function Track.change_fader_db(self, db)
 end
 
 
+function Track.toggle_solo(self)
+    local state = reaper.GetMediaTrackInfo_Value(self.track, "I_SOLO")
+    reaper.SetMediaTrackInfo_Value(self.track, "I_SOLO", state == 0 and 1 or 0)
+end
 
 
 
